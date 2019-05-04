@@ -1,16 +1,23 @@
-#include "LiquidCrystal_I2C_Spark.h";
+#include "Adafruit_Sensor.h"
+#include "Adafruit_DHT.h"
+#include "LiquidCrystal_I2C_Spark.h"
 
 LiquidCrystal_I2C *lcd;
 int led = D6;
+
+/************************************ Water and water sensor ********************************************/
+#define DHTPIN 2
+#define DHTTYPE DHT11	
+DHT dht(DHTPIN, DHTTYPE);
 
 /************************************ Water and water sensor ********************************************/
 int lastSecond = 0;
 int inputPinWater = A0;
 int water = 0;
 
-/******************************* For Smoothing Light Sensor*************************************************/
-const int numReadings = 10;
-int readings[numReadings];      // the readings from the analog input
+/******************************* For Smoothing Light Sensor Data*************************************************/
+const int numberOfReadings = 10;
+int readings[numberOfReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
 int total = 0;                  // the running total
 int average = 0;                // the average
@@ -22,57 +29,85 @@ void setup(void)
   pinMode(inputPinWater, INPUT);
   pinMode(led, OUTPUT);
 
+  dht.begin();
+
+  //LCD SET UP
   lcd = new LiquidCrystal_I2C(0x27, 16, 2);
   lcd->init();
   lcd->backlight();
   lcd->clear();
 
-  handleWaterLevleOnScreen();
-  for (int thisReading = 0; thisReading < numReadings; thisReading++) {
+  // Looping for Light sensor
+  for (int thisReading = 0; thisReading < numberOfReadings; thisReading++) {
     readings[thisReading] = 0;
   }
+
+  //Particle.function("WaterLevel")
+
+  // Make sure something is displayed
+  handleWaterLevelOnScreen();
+  
 }
 
 void loop(void)
 {
-  handleWaterLevle();
+  handleWaterLevel();
   sunSensor();
   delay(1000);
+
+  float h = dht.getHumidity();
+// Read temperature as Celsius
+	float t = dht.getTempCelcius();
+
+  lcd->setCursor(0,1);
+  lcd->print(t);
+  lcd->print(F("°C"));
+  delay(5000);
+
+  lcd->setCursor(0,1);
+  lcd->print(h);
+  lcd->print(F("%"));
+  delay(5000);
 }
 
-void handleWaterLevle()
+int getCurrentWaterLevel()
 {
-  const int readWater = analogRead(inputPinWater);
-  if (10 + water <= readWater)
-  {
-    water = readWater;
-    handleWaterLevleOnScreen(); 
-  } 
-  else if (water - 10 >= readWater)
-  {
-    water = readWater;
-    handleWaterLevleOnScreen(); 
-  }
+  return analogRead(inputPinWater)/100;
 }
 
-void handleWaterLevleOnScreen()
+void handleWaterLevel()
+{
+  const int readWater = getCurrentWaterLevel();
+  if (water != readWater)
+  {
+    water = readWater;
+    handleWaterLevelOnScreen(); 
+  } 
+}
+
+void handleWaterLevelOnScreen()
 {  
   lcd->setCursor(1,0);
   lcd->clear();
-  if (water > 1700)
+  if (water >= 40)
   {
     digitalWrite(led, LOW);
     lcd->print("Water: Full");
   }
-  else if (water > 1000)
+  else if (water >= 20)
   {
     digitalWrite(led, LOW);
     lcd->print("Water: Good");
   }
-  else if (water > 500)
+  else if (water >= 10)
   {
     digitalWrite(led, LOW);
     lcd->print("Water: OK");
+  }
+  else if (water >= 5)
+  {
+    digitalWrite(led, LOW);
+    lcd->print("Water: Low");
   }
   else
   {
@@ -92,12 +127,12 @@ void sunSensor()
   total = total + readings[readIndex];
   readIndex = readIndex + 1;
 
-  if (readIndex >= numReadings) 
+  if (readIndex >= numberOfReadings) 
   {
     readIndex = 0;
   }
 
-  average = total / numReadings;
+  average = total / numberOfReadings;
   
   if (average > dailyHighestAverage)
   {
@@ -110,6 +145,5 @@ void sunSensor()
   }
 
   lcd->setCursor(0,1);
-  lcd->print(dailyHighestAverage);
+  lcd->print(average);
 }
-
