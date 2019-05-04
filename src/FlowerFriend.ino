@@ -18,11 +18,10 @@ bool notifyUserAboutTemperature = false;
 
 /******************************* Smoothing Light Sensor Data *************************************************/
 const int numberOfReadings = 10;
-int readings[numberOfReadings];
+int lightReadings[numberOfReadings];
 int readIndex = 0;
 int total = 0;
-int averageLight = 0;
-int dailyHighestAverage = 0;
+int dailyHighestAverageLight = 0;
 
 
 void setup(void)
@@ -33,7 +32,7 @@ void setup(void)
   //Particle variables
   Particle.variable("temperature", &celcius, DOUBLE);
   Particle.variable("water", &water, INT);
-  Particle.variable("light", &averageLight, INT);
+  Particle.variable("light", &dailyHighestAverageLight, INT);
 
   //Particle functions
   Particle.function("checkNetworkConnection", checkNetworkConnection);
@@ -48,8 +47,9 @@ void setup(void)
   lcd->clear();
 
   // Looping for Light sensor
-  for (int thisReading = 0; thisReading < numberOfReadings; thisReading++) {
-    readings[thisReading] = 0;
+  for (int i = 0; i < numberOfReadings; i++) 
+  {
+    lightReadings[i] = 0;
   }
 }
 
@@ -67,13 +67,13 @@ void loop()
 /********************************************* SENSOR ***************************************************/
 bool hasSensorDataChanged()
 {
-  const int currentBestLigth = dailyHighestAverage;
+  const int currentBestLigth = dailyHighestAverageLight;
   const int waterChange = upadetWaterSensorData();
   const double currentTemp = celcius;
   updateTermostateData();
   
   updateLigthSensorData();
-  if ((currentBestLigth + 10 <= dailyHighestAverage) || (currentBestLigth - 10 >= dailyHighestAverage))
+  if ((currentBestLigth + 10 <= dailyHighestAverageLight) || (currentBestLigth - 10 >= dailyHighestAverageLight))
   {
     return true;
   } 
@@ -105,9 +105,9 @@ bool upadetWaterSensorData()
 
 void updateLigthSensorData()
 {
-  total = total - readings[readIndex];
-  readings[readIndex] = analogRead(inputPinLight);
-  total = total + readings[readIndex];
+  total = total - lightReadings[readIndex];
+  lightReadings[readIndex] = analogRead(inputPinLight);
+  total = total + lightReadings[readIndex];
   readIndex = readIndex + 1;
 
   if (readIndex >= numberOfReadings) 
@@ -115,17 +115,16 @@ void updateLigthSensorData()
     readIndex = 0;
   }
 
-  averageLight = total / numberOfReadings;
+  const int averageLight = total / numberOfReadings;
 
   if (Time.second() == 0 && Time.hour() == 0)
   {
-    dailyHighestAverage = 0;
+    dailyHighestAverageLight = 0;
   }
-  else if (dailyHighestAverage < averageLight)
+  else if (dailyHighestAverageLight < averageLight)
   {
-    dailyHighestAverage = averageLight;
+    dailyHighestAverageLight = averageLight;
   }
-  
 }
 
 void updateTermostateData()
@@ -146,7 +145,7 @@ void updateDisplay()
   lcd->print(waterStatus);
   
   int intCelcius = (int) celcius;
-  double differanse = celcius - (double) intCelcius;
+  const double differanse = celcius - (double) intCelcius;
   int add = (differanse >= 0.6) ? 1 : 0;
   intCelcius += add;
 
@@ -188,19 +187,19 @@ String displayWaterStatus()
 String displayLightStatus()
 {
   String message = "Light: ";
-  if (dailyHighestAverage >= 3700)
+  if (dailyHighestAverageLight >= 3700)
   {
     message = message + "A lot";
   }
-  else if (dailyHighestAverage >= 2000)
+  else if (dailyHighestAverageLight >= 2000)
   {
     message = message + "Good";
   }
-  else if (dailyHighestAverage >= 1200)
+  else if (dailyHighestAverageLight >= 1200)
   {
     message = message + "OK";
   }
-  else if (dailyHighestAverage >= 1200)
+  else if (dailyHighestAverageLight >= 1200)
   {
     message = message + "Low";
   }
