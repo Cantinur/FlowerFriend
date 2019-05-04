@@ -1,19 +1,17 @@
-#include "Adafruit_Sensor.h"
-#include "Adafruit_DHT.h"
 #include "LiquidCrystal_I2C_Spark.h"
+#include "DS18.h"
 
+
+/************************************ LCD Screen ********************************************/
 LiquidCrystal_I2C *lcd;
 int led = D6;
 
 /************************************ Water and water sensor ********************************************/
-#define DHTPIN 2
-#define DHTTYPE DHT11	
-DHT dht(DHTPIN, DHTTYPE);
-
-/************************************ Water and water sensor ********************************************/
-int lastSecond = 0;
 int inputPinWater = A0;
 int water = 0;
+
+/************************************ Temprature ********************************************/
+DS18 sensor(D3);
 
 /******************************* For Smoothing Light Sensor Data*************************************************/
 const int numberOfReadings = 10;
@@ -28,8 +26,6 @@ void setup(void)
 {
   pinMode(inputPinWater, INPUT);
   pinMode(led, OUTPUT);
-
-  dht.begin();
 
   //LCD SET UP
   lcd = new LiquidCrystal_I2C(0x27, 16, 2);
@@ -51,23 +47,12 @@ void setup(void)
 
 void loop(void)
 {
+  
   handleWaterLevel();
-  sunSensor();
-  delay(1000);
-
-  float h = dht.getHumidity();
-// Read temperature as Celsius
-	float t = dht.getTempCelcius();
-
-  lcd->setCursor(0,1);
-  lcd->print(t);
-  lcd->print(F("°C"));
-  delay(5000);
-
-  lcd->setCursor(0,1);
-  lcd->print(h);
-  lcd->print(F("%"));
-  delay(5000);
+  // ligthSensor();
+  // lcd->print(" lumen");
+  handleTemprature();
+  delay(100);
 }
 
 int getCurrentWaterLevel()
@@ -120,7 +105,7 @@ void handleWaterLevelOnScreen()
   //lcd->print(water);
 }
 
-void sunSensor()
+void ligthSensor()
 {
   total = total - readings[readIndex];
   readings[readIndex] = analogRead(inputPinLight);
@@ -133,17 +118,19 @@ void sunSensor()
   }
 
   average = total / numberOfReadings;
-  
-  if (average > dailyHighestAverage)
-  {
-    dailyHighestAverage = average;
-  }
-
-  if (Time.hour() == 0)
-  {
-    dailyHighestAverage = 0;
-  }
 
   lcd->setCursor(0,1);
   lcd->print(average);
+}
+
+void handleTemprature()
+{
+  if (sensor.read()) 
+  {
+    lcd->setCursor(0,1);
+    lcd->print(sensor.celsius());
+    lcd->print("*C");
+    Particle.variable("temperature", (double) sensor.celsius());
+    Particle.publish("temperature", (double) sensor.celsius(), PUBLIC)
+  }
 }
