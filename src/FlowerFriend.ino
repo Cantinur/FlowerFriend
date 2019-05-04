@@ -21,6 +21,7 @@ const int numberOfReadings = 10;
 int lightReadings[numberOfReadings];
 int readIndex = 0;
 int total = 0;
+int averageLight = 0;
 int dailyHighestAverageLight = 0;
 
 
@@ -58,7 +59,7 @@ void loop()
   if (hasSensorDataChanged())
   {
     updateLED();
-    updateDisplay();  
+    updateDisplay(); 
   }
   delay(100);
 }
@@ -68,19 +69,17 @@ void loop()
 bool hasSensorDataChanged()
 {
   const int currentBestLigth = dailyHighestAverageLight;
-  const int waterChange = upadetWaterSensorData();
+  const bool waterChange = upadetWaterSensorData();
   const double currentTemp = celcius;
-  updateTermostateData();
   
+  updateTermostateData();
   updateLigthSensorData();
+  
   if ((currentBestLigth + 10 <= dailyHighestAverageLight) || (currentBestLigth - 10 >= dailyHighestAverageLight))
   {
     return true;
   } 
-  else if (currentTemp + 1.00 <= celcius){
-    return true;
-  }
-  else if (currentTemp - 1 >= celcius)
+  else if ((currentTemp + 1.00 <= celcius) || (currentTemp - 1 >= celcius))
   {
     return true;
   }
@@ -115,7 +114,7 @@ void updateLigthSensorData()
     readIndex = 0;
   }
 
-  const int averageLight = total / numberOfReadings;
+  averageLight = total / numberOfReadings;
 
   if (Time.second() == 0 && Time.hour() == 0)
   {
@@ -160,54 +159,54 @@ void updateDisplay()
 
 String displayWaterStatus()
 {  
-  String message = "Water: ";
+  String message;
   if (water >= 40)
   {
-    message = message + "Full";
+    message = "Full";
   }
   else if (water >= 20)
   {
-    message = message + "Good";
+    message = "Good";
   }
   else if (water >= 10)
   {
-    message = message + "OK";
+    message = "OK";
   }
   else if (water >= 5)
   {
-    message = message + "Low";
+    message = "Low";
   }
   else
   {
-    message = message + "None";
+    message = "None";
   }
-  return message;
+  return "Water: " + message;
 }
 
 String displayLightStatus()
 {
-  String message = "Light: ";
+  String message;
   if (dailyHighestAverageLight >= 3700)
   {
-    message = message + "A lot";
+    message = "A lot";
   }
   else if (dailyHighestAverageLight >= 2000)
   {
-    message = message + "Good";
+    message = "Good";
   }
   else if (dailyHighestAverageLight >= 1200)
   {
-    message = message + "OK";
+    message = "OK";
   }
   else if (dailyHighestAverageLight >= 1200)
   {
-    message = message + "Low";
+    message = "Low";
   }
   else
   {
-    message = message + "Nothing";
+    message = "Nothing";
   }
-  return message;
+  return "Light: " + message;
 }
 
 /********************************************* LED ***************************************************/
@@ -219,9 +218,18 @@ void updateLED()
 /********************************************* CHECK STATUS ***************************************************/
 int checkNetworkConnection(String extra)
 {
-  digitalWrite(led, HIGH);
-  delay(1000);
-  digitalWrite(led, LOW);
+  if (water <= 5)
+  {
+    digitalWrite(led, HIGH);
+    delay(1000);
+    digitalWrite(led, LOW);
+  }
+  else 
+  {
+    digitalWrite(led, LOW);
+    delay(1000);
+    digitalWrite(led, HIGH);
+  }
   return 0;
 }
 
