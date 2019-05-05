@@ -272,19 +272,19 @@ void playAudio()
 //Play note and blink light
 int checkNetworkConnection(String extra)
 {
-  playAudio();
-  if (water <= 5)
+  if (water >= 5)
   {
     digitalWrite(led, HIGH);
-    delay(1000);
+    playAudio();
     digitalWrite(led, LOW);
   }
   else 
   {
     digitalWrite(led, LOW);
-    delay(1000);
+    playAudio();
     digitalWrite(led, HIGH);
   }
+  
   return 0;
 }
 
