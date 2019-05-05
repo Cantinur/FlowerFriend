@@ -42,8 +42,8 @@ if (light >= 3700){
   ligthMessage = "Det er ikke noe sol ☁️";
 }
 
-QuickLook.present("Planta har " + message + "\n" 
-+ "Tempraturen i leiligheten din er " + temprature + "°C" 
+QuickLook.present("Planta har " + message 
++ " Tempraturen i leiligheten din er " + temprature + "°C" 
 + ((temprature >= 20) ? " så varmt nok for planta. ":" så det er litt kjørlig. \n") 
 + ligthMessage)
 
