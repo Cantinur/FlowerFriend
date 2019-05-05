@@ -1,12 +1,15 @@
 #include "LiquidCrystal_I2C_Spark.h"
 #include "DS18.h"
-
+#include "pitches.h"
 
 LiquidCrystal_I2C *lcd;
 
+int pinWater = A0;
+int pinLight = A1;
+int pinFire = A2;
+
+int pinAudio = D2;
 DS18 sensor(D3);
-int inputPinLight = A1;
-int inputPinWater = A0;
 int led = D6;
 
 int water = 0;
@@ -15,25 +18,35 @@ bool notifyUserAboutfire = false;
 bool notifyUserAboutWater = false;
 bool notifyUserAboutTemperature = false;
 
+int melody[] = { NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4 };
+int noteDurations[] = { 4, 8, 8, 4, 4, 4, 4, 4 };
 
-/******************************* Smoothing Light Sensor Data *************************************************/
+/******************************* Smoothing Sensor Data *************************************************/
 const int numberOfReadings = 10;
+
+// Light
 int lightReadings[numberOfReadings];
-int readIndex = 0;
-int total = 0;
+int readLightIndex = 0;
+int totalLight = 0;
 int averageLight = 0;
 int dailyHighestAverageLight = 0;
 
+//Fire
+int fireReadings[numberOfReadings];
+int readFireIndex = 0;
+int totalFire = 0;
+int averageFireReading = 0;
 
 void setup(void)
 {
-  pinMode(inputPinWater, INPUT);
+  pinMode(pinWater, INPUT);
   pinMode(led, OUTPUT);
 
   //Particle variables
   Particle.variable("temperature", &celcius, DOUBLE);
   Particle.variable("water", &water, INT);
   Particle.variable("light", &dailyHighestAverageLight, INT);
+  Particle.variable("fire", &averageFireReading, INT);
 
   //Particle functions
   Particle.function("checkNetworkConnection", checkNetworkConnection);
@@ -51,6 +64,7 @@ void setup(void)
   for (int i = 0; i < numberOfReadings; i++) 
   {
     lightReadings[i] = 0;
+    fireReadings[i] = 0;
   }
 }
 
@@ -58,6 +72,10 @@ void loop()
 {
   if (hasSensorDataChanged())
   {
+    if (averageFireReading > 20) 
+    {
+      activateFireWorning();
+    }
     updateLED();
     updateDisplay(); 
   }
@@ -74,6 +92,7 @@ bool hasSensorDataChanged()
   
   updateTermostateData();
   updateLigthSensorData();
+  updateFireSensorData();
   
   if ((currentBestLigth + 10 <= dailyHighestAverageLight) || (currentBestLigth - 10 >= dailyHighestAverageLight))
   {
@@ -83,13 +102,12 @@ bool hasSensorDataChanged()
   {
     return true;
   }
-
   return waterChange;
 }
 
 bool upadetWaterSensorData()
 {
-  const int readWater = analogRead(inputPinWater)/100;
+  const int readWater = analogRead(pinWater)/100;
   if (water != readWater)
   {
     water = readWater;
@@ -104,17 +122,17 @@ bool upadetWaterSensorData()
 
 void updateLigthSensorData()
 {
-  total = total - lightReadings[readIndex];
-  lightReadings[readIndex] = analogRead(inputPinLight);
-  total = total + lightReadings[readIndex];
-  readIndex = readIndex + 1;
+  totalLight = totalLight - lightReadings[readLightIndex];
+  lightReadings[readLightIndex] = analogRead(pinLight);
+  totalLight = totalLight + lightReadings[readLightIndex];
+  readLightIndex = readLightIndex + 1;
 
-  if (readIndex >= numberOfReadings) 
+  if (readLightIndex >= numberOfReadings) 
   {
-    readIndex = 0;
+    readLightIndex = 0;
   }
 
-  averageLight = total / numberOfReadings;
+  averageLight = totalLight / numberOfReadings;
 
   if (Time.second() == 0 && Time.hour() == 0)
   {
@@ -124,6 +142,21 @@ void updateLigthSensorData()
   {
     dailyHighestAverageLight = averageLight;
   }
+}
+
+void updateFireSensorData()
+{
+  totalFire = totalFire - fireReadings[readFireIndex];
+  fireReadings[readFireIndex] = analogRead(pinFire);
+  totalFire = totalFire + fireReadings[readFireIndex];
+  readFireIndex = readFireIndex + 1;
+
+  if (readFireIndex >= numberOfReadings) 
+  {
+    readFireIndex = 0;
+  }
+  
+  averageFireReading = totalFire / numberOfReadings;
 }
 
 void updateTermostateData()
@@ -190,11 +223,11 @@ String displayLightStatus()
   {
     message = "A lot";
   }
-  else if (dailyHighestAverageLight >= 2000)
+  else if (dailyHighestAverageLight >= 3000)
   {
     message = "Good";
   }
-  else if (dailyHighestAverageLight >= 1200)
+  else if (dailyHighestAverageLight >= 2000)
   {
     message = "OK";
   }
@@ -215,9 +248,31 @@ void updateLED()
   digitalWrite(led, (water <= 5) ? HIGH : LOW);
 }
 
+void activateFireWorning()
+{
+  notifyUserAboutfire = true;
+  playAudio();
+}
+
+void playAudio()
+{
+  for (int thisNote = 0; thisNote < 8; thisNote++) 
+  {
+    int noteDuration = 1000 / noteDurations[thisNote];
+    tone(pinAudio, melody[thisNote], noteDuration);
+    int pauseBetweenNotes = noteDuration * 1.30;
+    delay(pauseBetweenNotes);
+    noTone(pinAudio);
+  }
+}
+
 /********************************************* CHECK STATUS ***************************************************/
+// All of these functions has to take in a string, even thou I don't use them. 
+
+//Play note and blink light
 int checkNetworkConnection(String extra)
 {
+  playAudio();
   if (water <= 5)
   {
     digitalWrite(led, HIGH);
