@@ -218,28 +218,28 @@ String displayWaterStatus()
 
 String displayLightStatus()
 {
-  String message;
+  String ligthMessage;
   if (dailyHighestAverageLight >= 3700)
   {
-    message = "A lot";
+    ligthMessage = "A lot";
   }
   else if (dailyHighestAverageLight >= 3000)
   {
-    message = "Good";
+    ligthMessage = "Good";
   }
   else if (dailyHighestAverageLight >= 2000)
   {
-    message = "OK";
+    ligthMessage = "OK";
   }
   else if (dailyHighestAverageLight >= 1200)
   {
-    message = "Low";
+    ligthMessage = "Low";
   }
   else
   {
-    message = "Nothing";
+    ligthMessage = "Nothing";
   }
-  return "Light: " + message;
+  return "Light: " + ligthMessage;
 }
 
 /********************************************* LED ***************************************************/
@@ -268,6 +268,7 @@ void playAudio()
 
 /********************************************* CHECK STATUS ***************************************************/
 // All of these functions has to take in a string, even thou I don't use them. 
+// They also have to return a int
 
 //Play note and blink light
 int checkNetworkConnection(String extra)
