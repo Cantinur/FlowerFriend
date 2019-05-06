@@ -250,8 +250,8 @@ void updateLED()
 
 void activateFireWorning()
 {
+  playAudioAndBlink();
   notifyUserAboutfire = true;
-  playAudio();
 }
 
 void playAudio()
@@ -266,12 +266,7 @@ void playAudio()
   }
 }
 
-/********************************************* CHECK STATUS ***************************************************/
-// All of these functions has to take in a string, even thou I don't use them. 
-// They also have to return a int
-
-//Play note and blink light
-int checkNetworkConnection(String extra)
+void playAudioAndBlink()
 {
   if (water >= 5)
   {
@@ -285,7 +280,16 @@ int checkNetworkConnection(String extra)
     playAudio();
     digitalWrite(led, HIGH);
   }
-  
+}
+
+/********************************************* CHECK STATUS ***************************************************/
+// All of these functions has to take in a string, even thou I don't use them. 
+// They also have to return a int
+
+//Play note and blink light
+int checkNetworkConnection(String extra)
+{
+  playAudioAndBlink();
   return 0;
 }
 
@@ -303,6 +307,7 @@ int checkWaterStatus(String extra)
 {
   if (notifyUserAboutWater)
   {
+    playAudioAndBlink();
     notifyUserAboutWater = false;
     return 1;
   }
